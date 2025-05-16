@@ -993,1087 +993,1087 @@ def main(context):
 
 
 
-    ###################################################################################################
-    #################################     ELO MODEL    ################################################
+    # ###################################################################################################
+    # #################################     ELO MODEL    ################################################
 
 
 
-    # Function to calculate match outcome probabilities from Poisson parameters
-    def poisson_match_probs(home_xg, away_xg):
-        """
-        Calculate match outcome probabilities using Poisson distribution.
+    # # Function to calculate match outcome probabilities from Poisson parameters
+    # def poisson_match_probs(home_xg, away_xg):
+    #     """
+    #     Calculate match outcome probabilities using Poisson distribution.
         
-        Parameters:
-        -----------
-        home_xg : float
-            Expected goals for home team
-        away_xg : float
-            Expected goals for away team
+    #     Parameters:
+    #     -----------
+    #     home_xg : float
+    #         Expected goals for home team
+    #     away_xg : float
+    #         Expected goals for away team
             
-        Returns:
-        --------
-        tuple (home_win_prob, draw_prob, away_win_prob)
-            Probabilities for each match outcome
-        """
-        # Calculate probabilities for different scorelines (0-0, 1-0, 0-1, etc.)
-        max_goals = 10  # Consider up to 10 goals for each team
-        home_probs = np.exp(-home_xg) * np.power(home_xg, np.arange(max_goals)) / np.array([math.factorial(i) for i in range(max_goals)])
-        away_probs = np.exp(-away_xg) * np.power(away_xg, np.arange(max_goals)) / np.array([math.factorial(i) for i in range(max_goals)])
+    #     Returns:
+    #     --------
+    #     tuple (home_win_prob, draw_prob, away_win_prob)
+    #         Probabilities for each match outcome
+    #     """
+    #     # Calculate probabilities for different scorelines (0-0, 1-0, 0-1, etc.)
+    #     max_goals = 10  # Consider up to 10 goals for each team
+    #     home_probs = np.exp(-home_xg) * np.power(home_xg, np.arange(max_goals)) / np.array([math.factorial(i) for i in range(max_goals)])
+    #     away_probs = np.exp(-away_xg) * np.power(away_xg, np.arange(max_goals)) / np.array([math.factorial(i) for i in range(max_goals)])
         
-        # Calculate match outcome probabilities
-        home_win_prob = 0
-        draw_prob = 0
-        away_win_prob = 0
+    #     # Calculate match outcome probabilities
+    #     home_win_prob = 0
+    #     draw_prob = 0
+    #     away_win_prob = 0
         
-        for i in range(max_goals):
-            for j in range(max_goals):
-                p = home_probs[i] * away_probs[j]
-                if i > j:
-                    home_win_prob += p
-                elif i == j:
-                    draw_prob += p
-                else:
-                    away_win_prob += p
+    #     for i in range(max_goals):
+    #         for j in range(max_goals):
+    #             p = home_probs[i] * away_probs[j]
+    #             if i > j:
+    #                 home_win_prob += p
+    #             elif i == j:
+    #                 draw_prob += p
+    #             else:
+    #                 away_win_prob += p
         
-        return home_win_prob, draw_prob, away_win_prob
+    #     return home_win_prob, draw_prob, away_win_prob
 
-    # Function to solve for xG values that match target probabilities
-    def solve_for_xg(target_probs, league_avg_home_xg=1.35, league_avg_away_xg=1.1):
-        """
-        Solve for xG values that would produce the target match probabilities.
+    # # Function to solve for xG values that match target probabilities
+    # def solve_for_xg(target_probs, league_avg_home_xg=1.35, league_avg_away_xg=1.1):
+    #     """
+    #     Solve for xG values that would produce the target match probabilities.
         
-        Parameters:
-        -----------
-        target_probs : tuple
-            Target probabilities (home_win, draw, away_win)
-        league_avg_home_xg : float
-            League average for home team expected goals
-        league_avg_away_xg : float
-            League average for away team expected goals
+    #     Parameters:
+    #     -----------
+    #     target_probs : tuple
+    #         Target probabilities (home_win, draw, away_win)
+    #     league_avg_home_xg : float
+    #         League average for home team expected goals
+    #     league_avg_away_xg : float
+    #         League average for away team expected goals
             
-        Returns:
-        --------
-        tuple (home_xg, away_xg)
-            Expected goals values that produce probabilities closest to target
-        """
-        target_home_prob, target_draw_prob, target_away_prob = target_probs
+    #     Returns:
+    #     --------
+    #     tuple (home_xg, away_xg)
+    #         Expected goals values that produce probabilities closest to target
+    #     """
+    #     target_home_prob, target_draw_prob, target_away_prob = target_probs
         
-        # Function to minimize (difference between Poisson probabilities and target probabilities)
-        def objective_function(params):
-            home_xg, away_xg = params
-            home_win_prob, draw_prob, away_win_prob = poisson_match_probs(home_xg, away_xg)
+    #     # Function to minimize (difference between Poisson probabilities and target probabilities)
+    #     def objective_function(params):
+    #         home_xg, away_xg = params
+    #         home_win_prob, draw_prob, away_win_prob = poisson_match_probs(home_xg, away_xg)
             
-            # Sum of squared differences
-            return (
-                (home_win_prob - target_home_prob)**2 + 
-                (draw_prob - target_draw_prob)**2 + 
-                (away_win_prob - target_away_prob)**2
-            )
+    #         # Sum of squared differences
+    #         return (
+    #             (home_win_prob - target_home_prob)**2 + 
+    #             (draw_prob - target_draw_prob)**2 + 
+    #             (away_win_prob - target_away_prob)**2
+    #         )
         
-        # Initial guess for xG values (reasonable starting points based on league averages)
-        initial_guess = [league_avg_home_xg, league_avg_away_xg]
+    #     # Initial guess for xG values (reasonable starting points based on league averages)
+    #     initial_guess = [league_avg_home_xg, league_avg_away_xg]
         
-        # Bounds to ensure positive xG values
-        bounds = [(0.01, 5), (0.01, 5)]
+    #     # Bounds to ensure positive xG values
+    #     bounds = [(0.01, 5), (0.01, 5)]
         
-        # Solve the optimization problem
-        result = minimize(
-            objective_function, 
-            initial_guess, 
-            method='L-BFGS-B', 
-            bounds=bounds
-        )
+    #     # Solve the optimization problem
+    #     result = minimize(
+    #         objective_function, 
+    #         initial_guess, 
+    #         method='L-BFGS-B', 
+    #         bounds=bounds
+    #     )
         
-        # Return the optimized parameters (home_xg, away_xg)
-        return result.x
+    #     # Return the optimized parameters (home_xg, away_xg)
+    #     return result.x
 
-    # def add_elo_xg_only(file_path, output_file=None, num_recent_games=6, home_advantage=35, league_home_xg=1.35, league_away_xg=1.1, def_elo=1500, def_f_factor=32):
-    def add_elo_xg_only(dataframe, num_recent_games=6, home_advantage=35, league_home_xg=1.35, league_away_xg=1.1, def_elo=1500, def_f_factor=32):
-        """
-        Calculate expected goals based on Elo ratings and add only the xG values to the football dataset.
+    # # def add_elo_xg_only(file_path, output_file=None, num_recent_games=6, home_advantage=35, league_home_xg=1.35, league_away_xg=1.1, def_elo=1500, def_f_factor=32):
+    # def add_elo_xg_only(dataframe, num_recent_games=6, home_advantage=35, league_home_xg=1.35, league_away_xg=1.1, def_elo=1500, def_f_factor=32):
+    #     """
+    #     Calculate expected goals based on Elo ratings and add only the xG values to the football dataset.
         
-        Parameters:
-        -----------
-        file_path : str
-            Path to the Excel file containing the football data
-        output_file : str, optional
-            Path to save the processed data (default: None, which appends '_xg_only' to original filename)
-        num_recent_games : int
-            Number of recent games to use for calculating league averages
-        home_advantage : int
-            Home advantage in Elo points
-        league_home_xg : float
-            Default league average for home team expected goals
-        league_away_xg : float
-            Default league average for away team expected goals
-        def_elo : int
-            Default Elo rating for teams
-        def_f_factor : int
-            K-factor for Elo rating updates
+    #     Parameters:
+    #     -----------
+    #     file_path : str
+    #         Path to the Excel file containing the football data
+    #     output_file : str, optional
+    #         Path to save the processed data (default: None, which appends '_xg_only' to original filename)
+    #     num_recent_games : int
+    #         Number of recent games to use for calculating league averages
+    #     home_advantage : int
+    #         Home advantage in Elo points
+    #     league_home_xg : float
+    #         Default league average for home team expected goals
+    #     league_away_xg : float
+    #         Default league average for away team expected goals
+    #     def_elo : int
+    #         Default Elo rating for teams
+    #     def_f_factor : int
+    #         K-factor for Elo rating updates
         
-        Returns:
-        --------
-        pandas.DataFrame
-            The enhanced dataframe with only the xG columns added
-        """
-        # Set default output file name if not provided
-        # if output_file is None:
-        #     output_file = file_path.replace('.xlsx', '_xg_only.xlsx')
+    #     Returns:
+    #     --------
+    #     pandas.DataFrame
+    #         The enhanced dataframe with only the xG columns added
+    #     """
+    #     # Set default output file name if not provided
+    #     # if output_file is None:
+    #     #     output_file = file_path.replace('.xlsx', '_xg_only.xlsx')
         
-        # Load and process the data
-        # df = load_and_process_data(file_path)
-        df = dataframe
+    #     # Load and process the data
+    #     # df = load_and_process_data(file_path)
+    #     df = dataframe
         
-        if df is None:
-            context.log("Failed to load data. Exiting.")
-            return None
+    #     if df is None:
+    #         context.log("Failed to load data. Exiting.")
+    #         return None
         
-        # Create a sequential index for chronological ordering
-        df = df.reset_index(drop=True)
+    #     # Create a sequential index for chronological ordering
+    #     df = df.reset_index(drop=True)
         
-        # Initialize only the xG columns in the final dataframe
-        output_columns = [
-            'home_xg_elo',
-            'away_xg_elo'
-        ]
+    #     # Initialize only the xG columns in the final dataframe
+    #     output_columns = [
+    #         'home_xg_elo',
+    #         'away_xg_elo'
+    #     ]
         
-        # We'll still calculate the Elo ratings and probabilities temporarily
-        temp_columns = [
-            'home_team_elo',
-            'away_team_elo',
-            'home_win_probability',
-            'draw_probability',
-            'away_win_probability'
-        ]
+    #     # We'll still calculate the Elo ratings and probabilities temporarily
+    #     temp_columns = [
+    #         'home_team_elo',
+    #         'away_team_elo',
+    #         'home_win_probability',
+    #         'draw_probability',
+    #         'away_win_probability'
+    #     ]
         
-        # Initialize all temporary and output columns with default values
-        all_columns = output_columns + temp_columns
-        for col in all_columns:
-            df[col] = 0.0
+    #     # Initialize all temporary and output columns with default values
+    #     all_columns = output_columns + temp_columns
+    #     for col in all_columns:
+    #         df[col] = 0.0
         
-        # Analyze historical data to get league averages for xG
-        # These will be used as initial values for the optimization
-        league_avg_home_xg = league_home_xg  # Default if we can't calculate from data
-        league_avg_away_xg = league_away_xg  # Default if we can't calculate from data
+    #     # Analyze historical data to get league averages for xG
+    #     # These will be used as initial values for the optimization
+    #     league_avg_home_xg = league_home_xg  # Default if we can't calculate from data
+    #     league_avg_away_xg = league_away_xg  # Default if we can't calculate from data
         
-        # Try to calculate from data if we have enough completed matches
-        completed_matches = df[df['status'].isin(['complete', 'finished'])]
-        if len(completed_matches) >= num_recent_games:
-            league_avg_home_xg = completed_matches['home_goals'].mean()
-            league_avg_away_xg = completed_matches['away_goals'].mean()
-            context.log(f"Calculated league averages - Home xG: {league_avg_home_xg:.2f}, Away xG: {league_avg_away_xg:.2f}")
-        else:
-            context.log(f"Using default league averages - Home xG: {league_avg_home_xg:.2f}, Away xG: {league_avg_away_xg:.2f}")
+    #     # Try to calculate from data if we have enough completed matches
+    #     completed_matches = df[df['status'].isin(['complete', 'finished'])]
+    #     if len(completed_matches) >= num_recent_games:
+    #         league_avg_home_xg = completed_matches['home_goals'].mean()
+    #         league_avg_away_xg = completed_matches['away_goals'].mean()
+    #         context.log(f"Calculated league averages - Home xG: {league_avg_home_xg:.2f}, Away xG: {league_avg_away_xg:.2f}")
+    #     else:
+    #         context.log(f"Using default league averages - Home xG: {league_avg_home_xg:.2f}, Away xG: {league_avg_away_xg:.2f}")
         
-        # Process each season separately
-        for season in df['season'].unique():
-            season_df = df[df['season'] == season].copy()
-            season_indices = season_df.index.tolist()
+    #     # Process each season separately
+    #     for season in df['season'].unique():
+    #         season_df = df[df['season'] == season].copy()
+    #         season_indices = season_df.index.tolist()
             
-            # Dictionary to store team Elo ratings for this season
-            elo_ratings = {}  # Dictionary to store team Elo ratings
-            default_elo = def_elo  # Starting Elo rating for teams without history
-            k_factor = def_f_factor  # K-factor determines how quickly ratings change
+    #         # Dictionary to store team Elo ratings for this season
+    #         elo_ratings = {}  # Dictionary to store team Elo ratings
+    #         default_elo = def_elo  # Starting Elo rating for teams without history
+    #         k_factor = def_f_factor  # K-factor determines how quickly ratings change
             
-            # Home field advantage in Elo points
-            home_advantage_elo = home_advantage
+    #         # Home field advantage in Elo points
+    #         home_advantage_elo = home_advantage
             
-            # Initialize Elo ratings for teams in this season
-            teams_in_season = set(season_df['home_team'].unique()) | set(season_df['away_team'].unique())
-            for team in teams_in_season:
-                elo_ratings[team] = default_elo
+    #         # Initialize Elo ratings for teams in this season
+    #         teams_in_season = set(season_df['home_team'].unique()) | set(season_df['away_team'].unique())
+    #         for team in teams_in_season:
+    #             elo_ratings[team] = default_elo
             
-            # Process each match chronologically within the season
-            for match_idx in season_indices:
-                home_team = df.at[match_idx, 'home_team']
-                away_team = df.at[match_idx, 'away_team']
+    #         # Process each match chronologically within the season
+    #         for match_idx in season_indices:
+    #             home_team = df.at[match_idx, 'home_team']
+    #             away_team = df.at[match_idx, 'away_team']
                 
-                # Set current Elo ratings for this match (before updating)
-                current_home_elo = elo_ratings.get(home_team, default_elo)
-                current_away_elo = elo_ratings.get(away_team, default_elo)
+    #             # Set current Elo ratings for this match (before updating)
+    #             current_home_elo = elo_ratings.get(home_team, default_elo)
+    #             current_away_elo = elo_ratings.get(away_team, default_elo)
                 
-                # Store Elo ratings temporarily (won't be included in final output)
-                df.at[match_idx, 'home_team_elo'] = current_home_elo
-                df.at[match_idx, 'away_team_elo'] = current_away_elo
+    #             # Store Elo ratings temporarily (won't be included in final output)
+    #             df.at[match_idx, 'home_team_elo'] = current_home_elo
+    #             df.at[match_idx, 'away_team_elo'] = current_away_elo
                 
-                # Calculate win probabilities based on Elo with home advantage
-                home_elo_adjusted = current_home_elo + home_advantage_elo
-                elo_diff = (home_elo_adjusted - current_away_elo) / 400.0
-                home_win_prob_raw = 1.0 / (1.0 + 10.0 ** (-elo_diff))
+    #             # Calculate win probabilities based on Elo with home advantage
+    #             home_elo_adjusted = current_home_elo + home_advantage_elo
+    #             elo_diff = (home_elo_adjusted - current_away_elo) / 400.0
+    #             home_win_prob_raw = 1.0 / (1.0 + 10.0 ** (-elo_diff))
                 
-                # Calculate away win probability directly from Elo
-                away_elo_adjusted = current_away_elo + home_advantage_elo  # If they were home
-                away_elo_diff = (away_elo_adjusted - current_home_elo) / 400.0
-                away_win_prob_raw = 1.0 / (1.0 + 10.0 ** (-away_elo_diff))
+    #             # Calculate away win probability directly from Elo
+    #             away_elo_adjusted = current_away_elo + home_advantage_elo  # If they were home
+    #             away_elo_diff = (away_elo_adjusted - current_home_elo) / 400.0
+    #             away_win_prob_raw = 1.0 / (1.0 + 10.0 ** (-away_elo_diff))
                 
-                # Calibrate draw probability 
-                base_draw_prob = 0.28
+    #             # Calibrate draw probability 
+    #             base_draw_prob = 0.28
                 
-                # Adjust draw probability based on how close the teams are
-                elo_diff_abs = abs(current_home_elo - current_away_elo)
-                draw_adjustment = max(0, 0.06 - (elo_diff_abs / 2000))
-                draw_prob = base_draw_prob + draw_adjustment
+    #             # Adjust draw probability based on how close the teams are
+    #             elo_diff_abs = abs(current_home_elo - current_away_elo)
+    #             draw_adjustment = max(0, 0.06 - (elo_diff_abs / 2000))
+    #             draw_prob = base_draw_prob + draw_adjustment
                 
-                # Recalibrate win probabilities to account for draw and ensure all sum to 1
-                remaining_prob = 1.0 - draw_prob
+    #             # Recalibrate win probabilities to account for draw and ensure all sum to 1
+    #             remaining_prob = 1.0 - draw_prob
                 
-                # Calculate relative strengths of home and away teams
-                total_win_prob_raw = home_win_prob_raw + away_win_prob_raw
-                relative_home_strength = home_win_prob_raw / total_win_prob_raw
-                relative_away_strength = away_win_prob_raw / total_win_prob_raw
+    #             # Calculate relative strengths of home and away teams
+    #             total_win_prob_raw = home_win_prob_raw + away_win_prob_raw
+    #             relative_home_strength = home_win_prob_raw / total_win_prob_raw
+    #             relative_away_strength = away_win_prob_raw / total_win_prob_raw
                 
-                # Distribute the remaining probability according to relative strengths
-                home_win_prob = relative_home_strength * remaining_prob
-                away_win_prob = relative_away_strength * remaining_prob
+    #             # Distribute the remaining probability according to relative strengths
+    #             home_win_prob = relative_home_strength * remaining_prob
+    #             away_win_prob = relative_away_strength * remaining_prob
                 
-                # Final check to ensure probabilities are in valid range and sum to 1
-                total_prob = home_win_prob + draw_prob + away_win_prob
-                if abs(total_prob - 1.0) > 0.0001:  # If not very close to 1
-                    home_win_prob /= total_prob
-                    draw_prob /= total_prob
-                    away_win_prob /= total_prob
+    #             # Final check to ensure probabilities are in valid range and sum to 1
+    #             total_prob = home_win_prob + draw_prob + away_win_prob
+    #             if abs(total_prob - 1.0) > 0.0001:  # If not very close to 1
+    #                 home_win_prob /= total_prob
+    #                 draw_prob /= total_prob
+    #                 away_win_prob /= total_prob
                 
-                # Store probabilities temporarily (won't be included in final output)
-                df.at[match_idx, 'home_win_probability'] = home_win_prob
-                df.at[match_idx, 'draw_probability'] = draw_prob
-                df.at[match_idx, 'away_win_probability'] = away_win_prob
+    #             # Store probabilities temporarily (won't be included in final output)
+    #             df.at[match_idx, 'home_win_probability'] = home_win_prob
+    #             df.at[match_idx, 'draw_probability'] = draw_prob
+    #             df.at[match_idx, 'away_win_probability'] = away_win_prob
                 
-                # Calculate expected goals based on these probabilities
-                try:
-                    target_probs = (home_win_prob, draw_prob, away_win_prob)
-                    home_xg, away_xg = solve_for_xg(target_probs, league_avg_home_xg, league_avg_away_xg)
+    #             # Calculate expected goals based on these probabilities
+    #             try:
+    #                 target_probs = (home_win_prob, draw_prob, away_win_prob)
+    #                 home_xg, away_xg = solve_for_xg(target_probs, league_avg_home_xg, league_avg_away_xg)
                     
-                    df.at[match_idx, 'home_xg_elo'] = round(home_xg, 2)
-                    df.at[match_idx, 'away_xg_elo'] = round(away_xg, 2)
-                except Exception as e:
-                    context.log(f"Error calculating xG for match {match_idx}: {e}")
-                    # Fallback calculation for xG based on relative team strength
-                    home_strength_ratio = 10 ** (elo_diff)
+    #                 df.at[match_idx, 'home_xg_elo'] = round(home_xg, 2)
+    #                 df.at[match_idx, 'away_xg_elo'] = round(away_xg, 2)
+    #             except Exception as e:
+    #                 context.log(f"Error calculating xG for match {match_idx}: {e}")
+    #                 # Fallback calculation for xG based on relative team strength
+    #                 home_strength_ratio = 10 ** (elo_diff)
                     
-                    # More balanced xG values even when optimization fails
-                    if home_strength_ratio > 1:  # Home team is stronger
-                        df.at[match_idx, 'home_xg_elo'] = round(league_avg_home_xg * (home_strength_ratio ** 0.15), 2)
-                        df.at[match_idx, 'away_xg_elo'] = round(league_avg_away_xg * (1 / home_strength_ratio ** 0.1), 2)
-                    else:  # Away team is stronger
-                        df.at[match_idx, 'home_xg_elo'] = round(league_avg_home_xg * (home_strength_ratio ** 0.1), 2)
-                        df.at[match_idx, 'away_xg_elo'] = round(league_avg_away_xg * (1 / home_strength_ratio ** 0.15), 2)
+    #                 # More balanced xG values even when optimization fails
+    #                 if home_strength_ratio > 1:  # Home team is stronger
+    #                     df.at[match_idx, 'home_xg_elo'] = round(league_avg_home_xg * (home_strength_ratio ** 0.15), 2)
+    #                     df.at[match_idx, 'away_xg_elo'] = round(league_avg_away_xg * (1 / home_strength_ratio ** 0.1), 2)
+    #                 else:  # Away team is stronger
+    #                     df.at[match_idx, 'home_xg_elo'] = round(league_avg_home_xg * (home_strength_ratio ** 0.1), 2)
+    #                     df.at[match_idx, 'away_xg_elo'] = round(league_avg_away_xg * (1 / home_strength_ratio ** 0.15), 2)
                 
-                # Update Elo ratings after the match if it has been played
-                if match_idx in df.index and df.at[match_idx, 'status'] in ['complete', 'finished']:
-                    # Get match result
-                    match_result = df.at[match_idx, 'full_time_result']
+    #             # Update Elo ratings after the match if it has been played
+    #             if match_idx in df.index and df.at[match_idx, 'status'] in ['complete', 'finished']:
+    #                 # Get match result
+    #                 match_result = df.at[match_idx, 'full_time_result']
                     
-                    # Only update if we have a result
-                    if pd.notna(match_result):
-                        # Convert result to score for Elo calculation
-                        if match_result == 'H':
-                            actual_score = 1.0  # Home win
-                        elif match_result == 'A':
-                            actual_score = 0.0  # Away win
-                        else:  # Draw
-                            actual_score = 0.5
+    #                 # Only update if we have a result
+    #                 if pd.notna(match_result):
+    #                     # Convert result to score for Elo calculation
+    #                     if match_result == 'H':
+    #                         actual_score = 1.0  # Home win
+    #                     elif match_result == 'A':
+    #                         actual_score = 0.0  # Away win
+    #                     else:  # Draw
+    #                         actual_score = 0.5
                         
-                        # Calculate expected score based on Elo difference (including draw probability)
-                        expected_score = home_win_prob + (0.5 * draw_prob)
+    #                     # Calculate expected score based on Elo difference (including draw probability)
+    #                     expected_score = home_win_prob + (0.5 * draw_prob)
                         
-                        # Calculate Elo updates
-                        elo_change = k_factor * (actual_score - expected_score)
+    #                     # Calculate Elo updates
+    #                     elo_change = k_factor * (actual_score - expected_score)
                         
-                        # Update Elo ratings for next matches
-                        elo_ratings[home_team] = current_home_elo + elo_change
-                        elo_ratings[away_team] = current_away_elo - elo_change
+    #                     # Update Elo ratings for next matches
+    #                     elo_ratings[home_team] = current_home_elo + elo_change
+    #                     elo_ratings[away_team] = current_away_elo - elo_change
         
-        # Create a new DataFrame with only the original columns plus xG columns
-        # This ensures we don't include the temporary Elo and probability columns
-        original_columns = [col for col in df.columns if col not in all_columns]
-        final_columns = original_columns + output_columns
-        output_df = df[final_columns].copy()
+    #     # Create a new DataFrame with only the original columns plus xG columns
+    #     # This ensures we don't include the temporary Elo and probability columns
+    #     original_columns = [col for col in df.columns if col not in all_columns]
+    #     final_columns = original_columns + output_columns
+    #     output_df = df[final_columns].copy()
 
-        # output_df = output_df.drop(['full_time_result'], axis=1)
+    #     # output_df = output_df.drop(['full_time_result'], axis=1)
         
-        # Save the enhanced dataframe with only the xG columns
-        # output_df.to_excel(output_file, index=False)
-        # context.log(f"Data with only xG values saved to {output_file}")
+    #     # Save the enhanced dataframe with only the xG columns
+    #     # output_df.to_excel(output_file, index=False)
+    #     # context.log(f"Data with only xG values saved to {output_file}")
         
-        return output_df
+    #     return output_df
 
-    # Example usage
-    df_elo = add_elo_xg_only(clean_dataframe, num_recent_games=NUM_PREVIOUS_GAMES, 
-                                    home_advantage=35, league_home_xg=1.35, league_away_xg=1.1,
-                                    def_elo=1500, def_f_factor=32)
+    # # Example usage
+    # df_elo = add_elo_xg_only(clean_dataframe, num_recent_games=NUM_PREVIOUS_GAMES, 
+    #                                 home_advantage=35, league_home_xg=1.35, league_away_xg=1.1,
+    #                                 def_elo=1500, def_f_factor=32)
 
-    # Save the enhanced dataframe with only the xG columns
-    # df_elo.to_excel(OUTPUT_FILENAME, index=False)
-    # context.log(f"Data with only xG values saved to {OUTPUT_FILENAME}")
+    # # Save the enhanced dataframe with only the xG columns
+    # # df_elo.to_excel(OUTPUT_FILENAME, index=False)
+    # # context.log(f"Data with only xG values saved to {OUTPUT_FILENAME}")
 
-    ###################################################################################################
-    #########################     DIXON-COLES MODEL    ################################################
+    # ###################################################################################################
+    # #########################     DIXON-COLES MODEL    ################################################
 
-    def _get_team_matches_dixonCole(df, team):
-        """Get all matches for a team (both home and away)"""
-        return df[(df['home_team'] == team) | (df['away_team'] == team)]
+    # def _get_team_matches_dixonCole(df, team):
+    #     """Get all matches for a team (both home and away)"""
+    #     return df[(df['home_team'] == team) | (df['away_team'] == team)]
 
-    def _dixon_coles_correction(home_goals, away_goals, home_rate, away_rate, rho):
-        """Dixon-Coles correction function for low scoring matches."""
-        if home_goals == 0 and away_goals == 0:
-            return 1 - (home_rate * away_rate * rho)
-        elif home_goals == 1 and away_goals == 0:
-            return 1 + (away_rate * rho)
-        elif home_goals == 0 and away_goals == 1:
-            return 1 + (home_rate * rho)
-        elif home_goals == 1 and away_goals == 1:
-            return 1 - rho
-        else:
-            return 1.0
+    # def _dixon_coles_correction(home_goals, away_goals, home_rate, away_rate, rho):
+    #     """Dixon-Coles correction function for low scoring matches."""
+    #     if home_goals == 0 and away_goals == 0:
+    #         return 1 - (home_rate * away_rate * rho)
+    #     elif home_goals == 1 and away_goals == 0:
+    #         return 1 + (away_rate * rho)
+    #     elif home_goals == 0 and away_goals == 1:
+    #         return 1 + (home_rate * rho)
+    #     elif home_goals == 1 and away_goals == 1:
+    #         return 1 - rho
+    #     else:
+    #         return 1.0
 
-    def _dixon_coles_loglikelihood(params, match_data, teams_attack, teams_defense, num_teams):
-        """Calculate the negative log-likelihood for the Dixon-Coles model."""
-        # Extract parameters
-        home_advantage = params[0]
-        rho = params[1]
+    # def _dixon_coles_loglikelihood(params, match_data, teams_attack, teams_defense, num_teams):
+    #     """Calculate the negative log-likelihood for the Dixon-Coles model."""
+    #     # Extract parameters
+    #     home_advantage = params[0]
+    #     rho = params[1]
         
-        # Calculate negative log-likelihood for matches
-        nll = 0.0
+    #     # Calculate negative log-likelihood for matches
+    #     nll = 0.0
         
-        for home_idx, away_idx, home_goals, away_goals in match_data:
-            # Calculate expected goals
-            home_rate = np.exp(teams_attack[home_idx] + teams_defense[away_idx] + home_advantage)
-            away_rate = np.exp(teams_attack[away_idx] + teams_defense[home_idx])
+    #     for home_idx, away_idx, home_goals, away_goals in match_data:
+    #         # Calculate expected goals
+    #         home_rate = np.exp(teams_attack[home_idx] + teams_defense[away_idx] + home_advantage)
+    #         away_rate = np.exp(teams_attack[away_idx] + teams_defense[home_idx])
             
-            # Apply Dixon-Coles correction for low-scoring matches
-            correction = _dixon_coles_correction(home_goals, away_goals, home_rate, away_rate, rho)
+    #         # Apply Dixon-Coles correction for low-scoring matches
+    #         correction = _dixon_coles_correction(home_goals, away_goals, home_rate, away_rate, rho)
             
-            # Poisson probability with Dixon-Coles correction
-            home_prob = np.exp(-home_rate) * (home_rate ** home_goals) / np.math.factorial(home_goals)
-            away_prob = np.exp(-away_rate) * (away_rate ** away_goals) / np.math.factorial(away_goals)
+    #         # Poisson probability with Dixon-Coles correction
+    #         home_prob = np.exp(-home_rate) * (home_rate ** home_goals) / np.math.factorial(home_goals)
+    #         away_prob = np.exp(-away_rate) * (away_rate ** away_goals) / np.math.factorial(away_goals)
             
-            # Add to negative log-likelihood
-            if correction > 0:
-                nll -= np.log(home_prob * away_prob * correction)
-            else:
-                # Avoid numerical issues
-                nll += 10  # Penalize impossible scenarios
+    #         # Add to negative log-likelihood
+    #         if correction > 0:
+    #             nll -= np.log(home_prob * away_prob * correction)
+    #         else:
+    #             # Avoid numerical issues
+    #             nll += 10  # Penalize impossible scenarios
         
-        # Add regularization to prevent extreme values
-        regularization_strength = 0.1
-        for team_idx in range(num_teams):
-            nll += regularization_strength * (teams_attack[team_idx]**2 + teams_defense[team_idx]**2)
+    #     # Add regularization to prevent extreme values
+    #     regularization_strength = 0.1
+    #     for team_idx in range(num_teams):
+    #         nll += regularization_strength * (teams_attack[team_idx]**2 + teams_defense[team_idx]**2)
         
-        return nll
+    #     return nll
 
-    def _fit_dixon_coles_model(match_data, teams, initial_values=None, min_home_advantage=0.3):
-        """
-        Fit the Dixon-Coles model to match data.
+    # def _fit_dixon_coles_model(match_data, teams, initial_values=None, min_home_advantage=0.3):
+    #     """
+    #     Fit the Dixon-Coles model to match data.
         
-        Parameters:
-        -----------
-        match_data : list of tuples
-            List of (home_idx, away_idx, home_goals, away_goals) tuples
-        teams : list
-            List of team names
-        initial_values : dict or None
-            Dictionary of initial attack and defense values for teams
-        min_home_advantage : float
-            Minimum home advantage value to enforce (default: 0.3)
+    #     Parameters:
+    #     -----------
+    #     match_data : list of tuples
+    #         List of (home_idx, away_idx, home_goals, away_goals) tuples
+    #     teams : list
+    #         List of team names
+    #     initial_values : dict or None
+    #         Dictionary of initial attack and defense values for teams
+    #     min_home_advantage : float
+    #         Minimum home advantage value to enforce (default: 0.3)
             
-        Returns:
-        --------
-        tuple (attack_strengths, defense_strengths, home_advantage, rho)
-            Fitted model parameters
-        """
-        num_teams = len(teams)
-        teams_idx = {team: i for i, team in enumerate(teams)}
+    #     Returns:
+    #     --------
+    #     tuple (attack_strengths, defense_strengths, home_advantage, rho)
+    #         Fitted model parameters
+    #     """
+    #     num_teams = len(teams)
+    #     teams_idx = {team: i for i, team in enumerate(teams)}
         
-        # Initial values for team parameters
-        if initial_values is None:
-            # Default initial values
-            teams_attack = {i: 0.0 for i in range(num_teams)}
-            teams_defense = {i: 0.0 for i in range(num_teams)}
-        else:
-            # Use provided initial values
-            teams_attack = {teams_idx[team]: values['attack'] for team, values in initial_values.items() if team in teams_idx}
-            teams_defense = {teams_idx[team]: values['defense'] for team, values in initial_values.items() if team in teams_idx}
+    #     # Initial values for team parameters
+    #     if initial_values is None:
+    #         # Default initial values
+    #         teams_attack = {i: 0.0 for i in range(num_teams)}
+    #         teams_defense = {i: 0.0 for i in range(num_teams)}
+    #     else:
+    #         # Use provided initial values
+    #         teams_attack = {teams_idx[team]: values['attack'] for team, values in initial_values.items() if team in teams_idx}
+    #         teams_defense = {teams_idx[team]: values['defense'] for team, values in initial_values.items() if team in teams_idx}
             
-            # Set default values for any missing teams
-            for i in range(num_teams):
-                if i not in teams_attack:
-                    teams_attack[i] = 0.0
-                if i not in teams_defense:
-                    teams_defense[i] = 0.0
+    #         # Set default values for any missing teams
+    #         for i in range(num_teams):
+    #             if i not in teams_attack:
+    #                 teams_attack[i] = 0.0
+    #             if i not in teams_defense:
+    #                 teams_defense[i] = 0.0
         
-        # Initial values for global parameters
-        # Start with a higher initial home advantage to encourage the model to find values above our minimum
-        initial_params = np.array([max(0.5, min_home_advantage), -0.1])  # home advantage and rho
+    #     # Initial values for global parameters
+    #     # Start with a higher initial home advantage to encourage the model to find values above our minimum
+    #     initial_params = np.array([max(0.5, min_home_advantage), -0.1])  # home advantage and rho
         
-        # Define objective function for the global parameters optimization
-        def objective(params):
-            return _dixon_coles_loglikelihood(params, match_data, teams_attack, teams_defense, num_teams)
+    #     # Define objective function for the global parameters optimization
+    #     def objective(params):
+    #         return _dixon_coles_loglikelihood(params, match_data, teams_attack, teams_defense, num_teams)
         
-        # Optimize global parameters with lower bound for home advantage
-        result = minimize(
-            objective,
-            initial_params,
-            method='L-BFGS-B',
-            bounds=[(min_home_advantage, 1.0), (-1.0, 0.0)],  # home advantage [min,1], rho [-1,0]
-            options={'maxiter': 100}
-        )
+    #     # Optimize global parameters with lower bound for home advantage
+    #     result = minimize(
+    #         objective,
+    #         initial_params,
+    #         method='L-BFGS-B',
+    #         bounds=[(min_home_advantage, 1.0), (-1.0, 0.0)],  # home advantage [min,1], rho [-1,0]
+    #         options={'maxiter': 100}
+    #     )
         
-        # Extract optimized parameters
-        home_advantage = max(result.x[0], min_home_advantage)  # Enforce minimum even if optimizer went below
-        rho = result.x[1]
+    #     # Extract optimized parameters
+    #     home_advantage = max(result.x[0], min_home_advantage)  # Enforce minimum even if optimizer went below
+    #     rho = result.x[1]
         
-        # Create a Poisson regression dataset for estimating team parameters
-        X_data = []
-        y_data = []
+    #     # Create a Poisson regression dataset for estimating team parameters
+    #     X_data = []
+    #     y_data = []
         
-        for home_idx, away_idx, home_goals, away_goals in match_data:
-            # For home goals
-            x_row = np.zeros(2 * num_teams + 1)
-            x_row[home_idx] = 1  # Home attack
-            x_row[num_teams + away_idx] = 1  # Away defense
-            x_row[-1] = 1  # Home advantage
-            X_data.append(x_row)
-            y_data.append(home_goals)
+    #     for home_idx, away_idx, home_goals, away_goals in match_data:
+    #         # For home goals
+    #         x_row = np.zeros(2 * num_teams + 1)
+    #         x_row[home_idx] = 1  # Home attack
+    #         x_row[num_teams + away_idx] = 1  # Away defense
+    #         x_row[-1] = 1  # Home advantage
+    #         X_data.append(x_row)
+    #         y_data.append(home_goals)
             
-            # For away goals
-            x_row = np.zeros(2 * num_teams + 1)
-            x_row[away_idx] = 1  # Away attack
-            x_row[num_teams + home_idx] = 1  # Home defense
-            X_data.append(x_row)
-            y_data.append(away_goals)
+    #         # For away goals
+    #         x_row = np.zeros(2 * num_teams + 1)
+    #         x_row[away_idx] = 1  # Away attack
+    #         x_row[num_teams + home_idx] = 1  # Home defense
+    #         X_data.append(x_row)
+    #         y_data.append(away_goals)
         
-        # Fit Poisson regression model
-        X = np.array(X_data)
-        y = np.array(y_data)
+    #     # Fit Poisson regression model
+    #     X = np.array(X_data)
+    #     y = np.array(y_data)
         
-        try:
-            model = sm.GLM(y, X, family=sm.families.Poisson())
-            result = model.fit(disp=0)
+    #     try:
+    #         model = sm.GLM(y, X, family=sm.families.Poisson())
+    #         result = model.fit(disp=0)
             
-            # Extract parameters
-            coeffs = result.params
+    #         # Extract parameters
+    #         coeffs = result.params
             
-            # Update team parameters
-            for i in range(num_teams):
-                teams_attack[i] = coeffs[i]
-                teams_defense[i] = coeffs[num_teams + i]
+    #         # Update team parameters
+    #         for i in range(num_teams):
+    #             teams_attack[i] = coeffs[i]
+    #             teams_defense[i] = coeffs[num_teams + i]
             
-            # Home advantage from Poisson model, but ensure it's above minimum
-            home_advantage = max(coeffs[-1], min_home_advantage)
-        except:
-            context.log("  Error fitting Poisson model, using partial estimates")
+    #         # Home advantage from Poisson model, but ensure it's above minimum
+    #         home_advantage = max(coeffs[-1], min_home_advantage)
+    #     except:
+    #         context.log("  Error fitting Poisson model, using partial estimates")
         
-        # Ensure identifiability by centering the attack and defense parameters
-        avg_attack = sum(teams_attack.values()) / num_teams
-        avg_defense = sum(teams_defense.values()) / num_teams
+    #     # Ensure identifiability by centering the attack and defense parameters
+    #     avg_attack = sum(teams_attack.values()) / num_teams
+    #     avg_defense = sum(teams_defense.values()) / num_teams
         
-        for i in range(num_teams):
-            teams_attack[i] -= avg_attack
-            teams_defense[i] -= avg_defense
+    #     for i in range(num_teams):
+    #         teams_attack[i] -= avg_attack
+    #         teams_defense[i] -= avg_defense
         
-        # Convert parameters to team ratings
-        attack_strengths = {teams[i]: teams_attack[i] for i in range(num_teams)}
-        defense_strengths = {teams[i]: teams_defense[i] for i in range(num_teams)}
+    #     # Convert parameters to team ratings
+    #     attack_strengths = {teams[i]: teams_attack[i] for i in range(num_teams)}
+    #     defense_strengths = {teams[i]: teams_defense[i] for i in range(num_teams)}
         
-        return attack_strengths, defense_strengths, home_advantage, rho
+    #     return attack_strengths, defense_strengths, home_advantage, rho
 
-    # Function to calculate expected goals using team ratings
-    def calculate_expected_goals_DixonCole(home_team, away_team, attack_params, defense_params, home_advantage=1.3):
-        """
-        Calculate expected goals for a match using team attack and defense parameters.
+    # # Function to calculate expected goals using team ratings
+    # def calculate_expected_goals_DixonCole(home_team, away_team, attack_params, defense_params, home_advantage=1.3):
+    #     """
+    #     Calculate expected goals for a match using team attack and defense parameters.
         
-        Parameters:
-        -----------
-        home_team, away_team : str
-            Team names
-        attack_params, defense_params : dict
-            Dictionaries containing attack and defense parameters for all teams
-        home_advantage : float
-            Home advantage factor (default: 1.2)
+    #     Parameters:
+    #     -----------
+    #     home_team, away_team : str
+    #         Team names
+    #     attack_params, defense_params : dict
+    #         Dictionaries containing attack and defense parameters for all teams
+    #     home_advantage : float
+    #         Home advantage factor (default: 1.2)
         
-        Returns:
-        --------
-        tuple
-            (expected_home_goals, expected_away_goals)
-        """
-        # Get parameters - default to middle value (1.0) if not available
-        home_attack = attack_params.get(home_team, 1.0)
-        home_defense = defense_params.get(home_team, 1.0)
-        away_attack = attack_params.get(away_team, 1.0)
-        away_defense = defense_params.get(away_team, 1.0)
+    #     Returns:
+    #     --------
+    #     tuple
+    #         (expected_home_goals, expected_away_goals)
+    #     """
+    #     # Get parameters - default to middle value (1.0) if not available
+    #     home_attack = attack_params.get(home_team, 1.0)
+    #     home_defense = defense_params.get(home_team, 1.0)
+    #     away_attack = attack_params.get(away_team, 1.0)
+    #     away_defense = defense_params.get(away_team, 1.0)
         
-        # For defense_factor, higher values mean better defense (fewer goals conceded)
-        # We need to convert defense rating to a factor that reduces expected goals
-        home_defense_factor = (3.0 - home_defense) / 3.0
-        away_defense_factor = (3.0 - away_defense) / 3.0
+    #     # For defense_factor, higher values mean better defense (fewer goals conceded)
+    #     # We need to convert defense rating to a factor that reduces expected goals
+    #     home_defense_factor = (3.0 - home_defense) / 3.0
+    #     away_defense_factor = (3.0 - away_defense) / 3.0
         
-        # Calculate expected goals
-        # Home team expected goals = home team attack * away team defense factor * home advantage
-        # Away team expected goals = away team attack * home team defense factor
-        expected_home_goals = home_attack * away_defense_factor * home_advantage
-        expected_away_goals = away_attack * home_defense_factor
+    #     # Calculate expected goals
+    #     # Home team expected goals = home team attack * away team defense factor * home advantage
+    #     # Away team expected goals = away team attack * home team defense factor
+    #     expected_home_goals = home_attack * away_defense_factor * home_advantage
+    #     expected_away_goals = away_attack * home_defense_factor
         
-        # Ensure expected goals are within a reasonable range (0-3)
-        expected_home_goals = min(max(expected_home_goals, 0.0), 3.0)
-        expected_away_goals = min(max(expected_away_goals, 0.0), 3.0)
+    #     # Ensure expected goals are within a reasonable range (0-3)
+    #     expected_home_goals = min(max(expected_home_goals, 0.0), 3.0)
+    #     expected_away_goals = min(max(expected_away_goals, 0.0), 3.0)
         
-        return expected_home_goals, expected_away_goals
+    #     return expected_home_goals, expected_away_goals
 
-    def add_dixon_coles_ratings(dataframe, num_recent_games=6, min_home_advantage=0.3, home_advantage_factor=1.3):
-        """
-        Add Dixon-Coles model rating columns to the football dataset.
-        Ratings are explicitly scaled to be positive and within the range 0-5.
+    # def add_dixon_coles_ratings(dataframe, num_recent_games=6, min_home_advantage=0.3, home_advantage_factor=1.3):
+    #     """
+    #     Add Dixon-Coles model rating columns to the football dataset.
+    #     Ratings are explicitly scaled to be positive and within the range 0-5.
         
-        Parameters:
-        -----------
-        file_path : str
-            Path to the Excel file containing the football data
-        num_recent_games : int, optional
-            Number of recent games to consider for calculations (default: 6)
-        min_home_advantage : float, optional
-            Minimum home advantage value to enforce (default: 0.3)
-        home_advantage_factor : float, optional
-            Home advantage factor for expected goals calculation (default: 1.2)
-        output_file : str, optional
-            Path to save the processed data (default: None, which appends '_dc' to original filename)
+    #     Parameters:
+    #     -----------
+    #     file_path : str
+    #         Path to the Excel file containing the football data
+    #     num_recent_games : int, optional
+    #         Number of recent games to consider for calculations (default: 6)
+    #     min_home_advantage : float, optional
+    #         Minimum home advantage value to enforce (default: 0.3)
+    #     home_advantage_factor : float, optional
+    #         Home advantage factor for expected goals calculation (default: 1.2)
+    #     output_file : str, optional
+    #         Path to save the processed data (default: None, which appends '_dc' to original filename)
         
-        Returns:
-        --------
-        pandas.DataFrame
-            The enhanced dataframe with Dixon-Coles rating columns
-        """
-        # Set default output file name if not provided
-        # if output_file is None:
-        #     output_file = file_path.replace('.xlsx', '_dc_fixed.xlsx')
+    #     Returns:
+    #     --------
+    #     pandas.DataFrame
+    #         The enhanced dataframe with Dixon-Coles rating columns
+    #     """
+    #     # Set default output file name if not provided
+    #     # if output_file is None:
+    #     #     output_file = file_path.replace('.xlsx', '_dc_fixed.xlsx')
         
-        # Load and process the data
-        # df = load_and_process_data(file_path)
-        df = dataframe
+    #     # Load and process the data
+    #     # df = load_and_process_data(file_path)
+    #     df = dataframe
 
-        if df is None:
-            context.log("Failed to load data. Exiting.")
-            return None
+    #     if df is None:
+    #         context.log("Failed to load data. Exiting.")
+    #         return None
         
-        # Create a sequential index for chronological ordering
-        df = df.reset_index(drop=True)
+    #     # Create a sequential index for chronological ordering
+    #     df = df.reset_index(drop=True)
         
-        # Initialize Dixon-Coles rating columns
-        dc_columns = [
-            'home_team_attack',
-            'home_team_defense',
-            'away_team_attack',
-            'away_team_defense',
-            'dc_home_advantage',
-            'home_xg_dc',  # New column for home team expected goals
-            'away_xg_dc'   # New column for away team expected goals
-        ]
+    #     # Initialize Dixon-Coles rating columns
+    #     dc_columns = [
+    #         'home_team_attack',
+    #         'home_team_defense',
+    #         'away_team_attack',
+    #         'away_team_defense',
+    #         'dc_home_advantage',
+    #         'home_xg_dc',  # New column for home team expected goals
+    #         'away_xg_dc'   # New column for away team expected goals
+    #     ]
         
-        # Initialize all columns with default values
-        for col in dc_columns:
-            if col.endswith('_attack') or col.endswith('_defense'):
-                df[col] = 0.5  # Default rating of 0.5
-            elif col == 'dc_home_advantage':
-                df[col] = min_home_advantage  # Set to minimum home advantage
-            elif col.endswith('_xg_dc'):
-                df[col] = 0.0  # Default expected goals of 0.0
-            else:
-                df[col] = 0.0
+    #     # Initialize all columns with default values
+    #     for col in dc_columns:
+    #         if col.endswith('_attack') or col.endswith('_defense'):
+    #             df[col] = 0.5  # Default rating of 0.5
+    #         elif col == 'dc_home_advantage':
+    #             df[col] = min_home_advantage  # Set to minimum home advantage
+    #         elif col.endswith('_xg_dc'):
+    #             df[col] = 0.0  # Default expected goals of 0.0
+    #         else:
+    #             df[col] = 0.0
         
-        # Process each season separately
-        seasons = sorted(df['season'].unique())
-        for i, season in enumerate(seasons):
-            context.log(f"Processing season: {season}")
-            season_df = df[df['season'] == season].copy()
-            season_indices = season_df.index.tolist()
+    #     # Process each season separately
+    #     seasons = sorted(df['season'].unique())
+    #     for i, season in enumerate(seasons):
+    #         context.log(f"Processing season: {season}")
+    #         season_df = df[df['season'] == season].copy()
+    #         season_indices = season_df.index.tolist()
             
-            # Dixon-Coles model parameters for this season
-            team_attack = {}  # Dictionary to store attack parameters
-            team_defense = {}  # Dictionary to store defense parameters
-            home_advantage = min_home_advantage  # Initialize with minimum home advantage
-            rho = 0.0  # Dixon-Coles correlation parameter (still used internally but not exported)
+    #         # Dixon-Coles model parameters for this season
+    #         team_attack = {}  # Dictionary to store attack parameters
+    #         team_defense = {}  # Dictionary to store defense parameters
+    #         home_advantage = min_home_advantage  # Initialize with minimum home advantage
+    #         rho = 0.0  # Dixon-Coles correlation parameter (still used internally but not exported)
             
-            # Initialize ratings for teams in this season
-            teams_in_season = list(set(season_df['home_team'].unique()) | set(season_df['away_team'].unique()))
-            for team in teams_in_season:
-                team_attack[team] = 0.0
-                team_defense[team] = 0.0
+    #         # Initialize ratings for teams in this season
+    #         teams_in_season = list(set(season_df['home_team'].unique()) | set(season_df['away_team'].unique()))
+    #         for team in teams_in_season:
+    #             team_attack[team] = 0.0
+    #             team_defense[team] = 0.0
             
-            # Track the model fitting frequency
-            last_fit_index = -1
+    #         # Track the model fitting frequency
+    #         last_fit_index = -1
             
-            # Adjust fit interval based on season length
-            season_length = len(season_indices)
-            fit_interval = max(num_recent_games, int(season_length / max(1, season_length/num_recent_games)))
+    #         # Adjust fit interval based on season length
+    #         season_length = len(season_indices)
+    #         fit_interval = max(num_recent_games, int(season_length / max(1, season_length/num_recent_games)))
             
-            # Adjust minimum matches needed based on season position
-            if i == 0:
-                # First season - start fitting earlier
-                min_matches_needed = num_recent_games
-            else:
-                # Subsequent seasons - standard threshold
-                min_matches_needed = num_recent_games
+    #         # Adjust minimum matches needed based on season position
+    #         if i == 0:
+    #             # First season - start fitting earlier
+    #             min_matches_needed = num_recent_games
+    #         else:
+    #             # Subsequent seasons - standard threshold
+    #             min_matches_needed = num_recent_games
             
-            # Process each match chronologically within the season
-            for match_idx_position, match_idx in enumerate(season_indices):
-                home_team = df.at[match_idx, 'home_team']
-                away_team = df.at[match_idx, 'away_team']
+    #         # Process each match chronologically within the season
+    #         for match_idx_position, match_idx in enumerate(season_indices):
+    #             home_team = df.at[match_idx, 'home_team']
+    #             away_team = df.at[match_idx, 'away_team']
                 
-                # Get all previous matches in this season up to this match
-                prev_season_matches = season_df[season_df.index < match_idx]
+    #             # Get all previous matches in this season up to this match
+    #             prev_season_matches = season_df[season_df.index < match_idx]
                 
-                # Check if we should recalculate ratings
-                enough_matches = len(prev_season_matches) >= min_matches_needed
-                enough_new_matches = match_idx_position - last_fit_index >= fit_interval
+    #             # Check if we should recalculate ratings
+    #             enough_matches = len(prev_season_matches) >= min_matches_needed
+    #             enough_new_matches = match_idx_position - last_fit_index >= fit_interval
                 
-                if enough_matches and (enough_new_matches or match_idx_position == len(season_indices) - 1):
-                    context.log(f"  Fitting model at match {match_idx_position+1}/{len(season_indices)}")
-                    last_fit_index = match_idx_position
+    #             if enough_matches and (enough_new_matches or match_idx_position == len(season_indices) - 1):
+    #                 context.log(f"  Fitting model at match {match_idx_position+1}/{len(season_indices)}")
+    #                 last_fit_index = match_idx_position
                     
-                    # Create a list of match data for fitting
-                    match_data = []
+    #                 # Create a list of match data for fitting
+    #                 match_data = []
                     
-                    # Teams that appear in recent matches
-                    teams_with_recent_matches = set()
+    #                 # Teams that appear in recent matches
+    #                 teams_with_recent_matches = set()
                     
-                    # For each team, get their most recent matches
-                    for team in teams_in_season:
-                        team_matches = _get_team_matches_dixonCole(prev_season_matches, team)
+    #                 # For each team, get their most recent matches
+    #                 for team in teams_in_season:
+    #                     team_matches = _get_team_matches_dixonCole(prev_season_matches, team)
                         
-                        # Only use the most recent num_recent_games for each team
-                        if len(team_matches) > 0:
-                            recent_team_matches = team_matches.tail(min(len(team_matches), num_recent_games))
+    #                     # Only use the most recent num_recent_games for each team
+    #                     if len(team_matches) > 0:
+    #                         recent_team_matches = team_matches.tail(min(len(team_matches), num_recent_games))
                             
-                            # Add to the set of teams with recent matches
-                            teams_with_recent_matches.add(team)
+    #                         # Add to the set of teams with recent matches
+    #                         teams_with_recent_matches.add(team)
                             
-                            # Add each match to the data if not already added
-                            for _, match in recent_team_matches.iterrows():
-                                home_team_match = match['home_team']
-                                away_team_match = match['away_team']
+    #                         # Add each match to the data if not already added
+    #                         for _, match in recent_team_matches.iterrows():
+    #                             home_team_match = match['home_team']
+    #                             away_team_match = match['away_team']
                                 
-                                # Add both teams to the set
-                                teams_with_recent_matches.add(home_team_match)
-                                teams_with_recent_matches.add(away_team_match)
+    #                             # Add both teams to the set
+    #                             teams_with_recent_matches.add(home_team_match)
+    #                             teams_with_recent_matches.add(away_team_match)
                     
-                    # Filter to only teams with recent matches
-                    teams_to_fit = list(teams_with_recent_matches)
-                    teams_idx = {team: i for i, team in enumerate(teams_to_fit)}
+    #                 # Filter to only teams with recent matches
+    #                 teams_to_fit = list(teams_with_recent_matches)
+    #                 teams_idx = {team: i for i, team in enumerate(teams_to_fit)}
                     
-                    # Prepare match data for model fitting
-                    for _, match in prev_season_matches.iterrows():
-                        home_team_match = match['home_team']
-                        away_team_match = match['away_team']
+    #                 # Prepare match data for model fitting
+    #                 for _, match in prev_season_matches.iterrows():
+    #                     home_team_match = match['home_team']
+    #                     away_team_match = match['away_team']
                         
-                        # Only include matches between teams in our index
-                        if home_team_match in teams_idx and away_team_match in teams_idx:
-                            home_idx = teams_idx[home_team_match]
-                            away_idx = teams_idx[away_team_match]
-                            home_goals = match['home_goals']
-                            away_goals = match['away_goals']
+    #                     # Only include matches between teams in our index
+    #                     if home_team_match in teams_idx and away_team_match in teams_idx:
+    #                         home_idx = teams_idx[home_team_match]
+    #                         away_idx = teams_idx[away_team_match]
+    #                         home_goals = match['home_goals']
+    #                         away_goals = match['away_goals']
                             
-                            match_data.append((home_idx, away_idx, home_goals, away_goals))
+    #                         match_data.append((home_idx, away_idx, home_goals, away_goals))
                     
-                    if len(match_data) >= (num_recent_games-1) and len(teams_to_fit) >= (num_recent_games-1):
-                        # Prepare initial values
-                        initial_values = {}
-                        for team in teams_to_fit:
-                            if team in team_attack and team in team_defense:
-                                initial_values[team] = {
-                                    'attack': team_attack[team],
-                                    'defense': team_defense[team]
-                                }
+    #                 if len(match_data) >= (num_recent_games-1) and len(teams_to_fit) >= (num_recent_games-1):
+    #                     # Prepare initial values
+    #                     initial_values = {}
+    #                     for team in teams_to_fit:
+    #                         if team in team_attack and team in team_defense:
+    #                             initial_values[team] = {
+    #                                 'attack': team_attack[team],
+    #                                 'defense': team_defense[team]
+    #                             }
                         
-                        # Fit the Dixon-Coles model with minimum home advantage
-                        try:
-                            attack, defense, home_advantage, rho = _fit_dixon_coles_model(
-                                match_data, teams_to_fit, initial_values, min_home_advantage
-                            )
+    #                     # Fit the Dixon-Coles model with minimum home advantage
+    #                     try:
+    #                         attack, defense, home_advantage, rho = _fit_dixon_coles_model(
+    #                             match_data, teams_to_fit, initial_values, min_home_advantage
+    #                         )
                             
-                            # Update team parameters
-                            for team, att in attack.items():
-                                team_attack[team] = att
+    #                         # Update team parameters
+    #                         for team, att in attack.items():
+    #                             team_attack[team] = att
                             
-                            for team, defs in defense.items():
-                                team_defense[team] = defs
+    #                         for team, defs in defense.items():
+    #                             team_defense[team] = defs
                             
-                            context.log(f"  Model fit successful. Home advantage: {home_advantage:.2f}")
-                        except Exception as e:
-                            context.log(f"  Error fitting Dixon-Coles model: {e}")
-                            # If optimization fails, keep existing ratings but ensure home advantage is at least minimum
-                            home_advantage = max(home_advantage, min_home_advantage)
+    #                         context.log(f"  Model fit successful. Home advantage: {home_advantage:.2f}")
+    #                     except Exception as e:
+    #                         context.log(f"  Error fitting Dixon-Coles model: {e}")
+    #                         # If optimization fails, keep existing ratings but ensure home advantage is at least minimum
+    #                         home_advantage = max(home_advantage, min_home_advantage)
                 
-                # Set current Dixon-Coles ratings for this match
-                current_home_attack = team_attack.get(home_team, 0.0)
-                current_home_defense = team_defense.get(home_team, 0.0)
-                current_away_attack = team_attack.get(away_team, 0.0)
-                current_away_defense = team_defense.get(away_team, 0.0)
+    #             # Set current Dixon-Coles ratings for this match
+    #             current_home_attack = team_attack.get(home_team, 0.0)
+    #             current_home_defense = team_defense.get(home_team, 0.0)
+    #             current_away_attack = team_attack.get(away_team, 0.0)
+    #             current_away_defense = team_defense.get(away_team, 0.0)
                 
-                # Scale ratings to 0-3 range
-                all_attack_values = list(team_attack.values())
-                all_defense_values = list(team_defense.values())
+    #             # Scale ratings to 0-3 range
+    #             all_attack_values = list(team_attack.values())
+    #             all_defense_values = list(team_defense.values())
                 
-                if len(all_attack_values) >= 2:
-                    # Find min and max values
-                    min_attack = min(all_attack_values)
-                    max_attack = max(all_attack_values)
-                    min_defense = min(all_defense_values)
-                    max_defense = max(all_defense_values)
+    #             if len(all_attack_values) >= 2:
+    #                 # Find min and max values
+    #                 min_attack = min(all_attack_values)
+    #                 max_attack = max(all_attack_values)
+    #                 min_defense = min(all_defense_values)
+    #                 max_defense = max(all_defense_values)
                     
-                    # Range for scaling
-                    attack_range = max_attack - min_attack if max_attack > min_attack else 1.0
-                    defense_range = max_defense - min_defense if max_defense > min_defense else 1.0
+    #                 # Range for scaling
+    #                 attack_range = max_attack - min_attack if max_attack > min_attack else 1.0
+    #                 defense_range = max_defense - min_defense if max_defense > min_defense else 1.0
                     
-                    # Scale to 0-3 range and shift to ensure minimum value is 0.5
-                    # For attack, higher raw value = better attack
-                    home_attack_scaled = 0.5 + 2.5 * (current_home_attack - min_attack) / attack_range
-                    away_attack_scaled = 0.5 + 2.5 * (current_away_attack - min_attack) / attack_range
+    #                 # Scale to 0-3 range and shift to ensure minimum value is 0.5
+    #                 # For attack, higher raw value = better attack
+    #                 home_attack_scaled = 0.5 + 2.5 * (current_home_attack - min_attack) / attack_range
+    #                 away_attack_scaled = 0.5 + 2.5 * (current_away_attack - min_attack) / attack_range
                     
-                    # For defense, lower raw value = better defense, so invert
-                    home_defense_scaled = 0.5 + 2.5 * (max_defense - current_home_defense) / defense_range
-                    away_defense_scaled = 0.5 + 2.5 * (max_defense - current_away_defense) / defense_range
+    #                 # For defense, lower raw value = better defense, so invert
+    #                 home_defense_scaled = 0.5 + 2.5 * (max_defense - current_home_defense) / defense_range
+    #                 away_defense_scaled = 0.5 + 2.5 * (max_defense - current_away_defense) / defense_range
                     
-                    # Clip to ensure 0.5-3 range even if distribution is skewed
-                    home_attack_scaled = min(max(home_attack_scaled, 0.5), 3.0)
-                    home_defense_scaled = min(max(home_defense_scaled, 0.5), 3.0)
-                    away_attack_scaled = min(max(away_attack_scaled, 0.5), 3.0)
-                    away_defense_scaled = min(max(away_defense_scaled, 0.5), 3.0)
+    #                 # Clip to ensure 0.5-3 range even if distribution is skewed
+    #                 home_attack_scaled = min(max(home_attack_scaled, 0.5), 3.0)
+    #                 home_defense_scaled = min(max(home_defense_scaled, 0.5), 3.0)
+    #                 away_attack_scaled = min(max(away_attack_scaled, 0.5), 3.0)
+    #                 away_defense_scaled = min(max(away_defense_scaled, 0.5), 3.0)
                     
-                    # Create a dictionary of scaled attack and defense values for expected goals calculation
-                    attack_params = {
-                        home_team: home_attack_scaled,
-                        away_team: away_attack_scaled
-                    }
+    #                 # Create a dictionary of scaled attack and defense values for expected goals calculation
+    #                 attack_params = {
+    #                     home_team: home_attack_scaled,
+    #                     away_team: away_attack_scaled
+    #                 }
                     
-                    defense_params = {
-                        home_team: home_defense_scaled,
-                        away_team: away_defense_scaled
-                    }
+    #                 defense_params = {
+    #                     home_team: home_defense_scaled,
+    #                     away_team: away_defense_scaled
+    #                 }
                     
-                    # Calculate expected goals using the formula from the first script
-                    home_expected_goals, away_expected_goals = calculate_expected_goals_DixonCole(
-                        home_team, 
-                        away_team, 
-                        attack_params, 
-                        defense_params, 
-                        home_advantage_factor
-                    )
-                else:
-                    # Not enough teams for scaling, use default value
-                    home_attack_scaled = 0.5
-                    home_defense_scaled = 0.5
-                    away_attack_scaled = 0.5
-                    away_defense_scaled = 0.5
-                    home_expected_goals = 0.0
-                    away_expected_goals = 0.0
+    #                 # Calculate expected goals using the formula from the first script
+    #                 home_expected_goals, away_expected_goals = calculate_expected_goals_DixonCole(
+    #                     home_team, 
+    #                     away_team, 
+    #                     attack_params, 
+    #                     defense_params, 
+    #                     home_advantage_factor
+    #                 )
+    #             else:
+    #                 # Not enough teams for scaling, use default value
+    #                 home_attack_scaled = 0.5
+    #                 home_defense_scaled = 0.5
+    #                 away_attack_scaled = 0.5
+    #                 away_defense_scaled = 0.5
+    #                 home_expected_goals = 0.0
+    #                 away_expected_goals = 0.0
                 
-                # Store ratings in the dataframe
-                df.at[match_idx, 'home_team_attack'] = home_attack_scaled
-                df.at[match_idx, 'home_team_defense'] = home_defense_scaled
-                df.at[match_idx, 'away_team_attack'] = away_attack_scaled
-                df.at[match_idx, 'away_team_defense'] = away_defense_scaled
-                df.at[match_idx, 'dc_home_advantage'] = home_advantage
-                df.at[match_idx, 'home_xg_dc'] = round(home_expected_goals, 2)
-                df.at[match_idx, 'away_xg_dc'] = round(away_expected_goals, 2)
+    #             # Store ratings in the dataframe
+    #             df.at[match_idx, 'home_team_attack'] = home_attack_scaled
+    #             df.at[match_idx, 'home_team_defense'] = home_defense_scaled
+    #             df.at[match_idx, 'away_team_attack'] = away_attack_scaled
+    #             df.at[match_idx, 'away_team_defense'] = away_defense_scaled
+    #             df.at[match_idx, 'dc_home_advantage'] = home_advantage
+    #             df.at[match_idx, 'home_xg_dc'] = round(home_expected_goals, 2)
+    #             df.at[match_idx, 'away_xg_dc'] = round(away_expected_goals, 2)
         
-        # Round all rating columns to 2 decimal places
-        for col in dc_columns:
-            df[col] = df[col].round(2)
+    #     # Round all rating columns to 2 decimal places
+    #     for col in dc_columns:
+    #         df[col] = df[col].round(2)
         
-        # Final check to ensure all home advantage values are at least the minimum
-        df['dc_home_advantage'] = np.maximum(df['dc_home_advantage'], min_home_advantage)
+    #     # Final check to ensure all home advantage values are at least the minimum
+    #     df['dc_home_advantage'] = np.maximum(df['dc_home_advantage'], min_home_advantage)
 
-        # drop unwanted columns
-        df = df.drop(['home_team_attack', 'home_team_defense', 'away_team_attack', 'away_team_defense', 'dc_home_advantage'], axis=1)
+    #     # drop unwanted columns
+    #     df = df.drop(['home_team_attack', 'home_team_defense', 'away_team_attack', 'away_team_defense', 'dc_home_advantage'], axis=1)
         
-        # Save the enhanced dataframe
-        # df.to_excel(output_file, index=False)
-        # context.log(f"Data with Dixon-Coles ratings saved to {output_file}")
+    #     # Save the enhanced dataframe
+    #     # df.to_excel(output_file, index=False)
+    #     # context.log(f"Data with Dixon-Coles ratings saved to {output_file}")
         
-        return df
+    #     return df
 
-    # Example usage
-    df_dc = add_dixon_coles_ratings(
-        df_elo,
-        num_recent_games=NUM_PREVIOUS_GAMES,
-        min_home_advantage=MIN_HOME_ADVANTAGE,  # Setting minimum home advantage
-        home_advantage_factor=HOME_ADVANTAGE,  # Home advantage factor for expected goals calculation
-    )
-
-
-    # Save the enhanced dataframe with only the xG columns
-    # df_dc.to_excel(OUTPUT_FILENAME, index=False)
-    # context.log(f"Data with only xG values saved to {OUTPUT_FILENAME}")
+    # # Example usage
+    # df_dc = add_dixon_coles_ratings(
+    #     df_elo,
+    #     num_recent_games=NUM_PREVIOUS_GAMES,
+    #     min_home_advantage=MIN_HOME_ADVANTAGE,  # Setting minimum home advantage
+    #     home_advantage_factor=HOME_ADVANTAGE,  # Home advantage factor for expected goals calculation
+    # )
 
 
-    ############################################################################################################
-    #################################     Bradley-Terry MODEL    ################################################
+    # # Save the enhanced dataframe with only the xG columns
+    # # df_dc.to_excel(OUTPUT_FILENAME, index=False)
+    # # context.log(f"Data with only xG values saved to {OUTPUT_FILENAME}")
 
 
-    def _get_team_matches_bradleyTerry(df, team):
-        """Get all matches for a team (both home and away)"""
-        return df[(df['home_team'] == team) | (df['away_team'] == team)]
+    # ############################################################################################################
+    # #################################     Bradley-Terry MODEL    ################################################
 
-    def _bradley_terry_loglikelihood(params, match_data, teams_idx, teams_count):
-        """
-        Calculate the negative log-likelihood for the Bradley-Terry model with regularization.
-        
-        Parameters:
-        -----------
-        params : array
-            Array of parameters: team strengths followed by home advantage
-        match_data : list of tuples
-            List of (home_idx, away_idx, home_win, draw) tuples
-        teams_idx : dict
-            Mapping of team names to index in strengths array
-        teams_count : int
-            Number of teams
-            
-        Returns:
-        --------
-        float
-            Negative log-likelihood with regularization
-        """
-        # Separate team strengths and home advantage
-        strengths = params[:teams_count]
-        home_advantage = params[-1]
-        
-        # Add constraint to ensure sum of strengths is 0 (identifiability constraint)
-        strengths = strengths - np.mean(strengths)
-        
-        # Calculate negative log-likelihood for matches
-        nll = 0.0
-        for home_idx, away_idx, home_win, draw in match_data:
-            # Get team strengths
-            s_i = strengths[home_idx] + home_advantage
-            s_j = strengths[away_idx]
-            
-            # Difference in strengths determines win probability
-            diff = s_i - s_j
-            
-            # Modified logistic function for probability calculation
-            p_i = 1.0 / (1.0 + np.exp(-diff))
-            
-            # For draws, use an ordered logit model
-            # Higher probability of draw when teams are more evenly matched
-            p_draw = max(0.0, 1.0 - abs(p_i - 0.5) * 2.0)  # Simple draw model
-            p_draw = min(p_draw, 0.5)  # Cap the draw probability
-            
-            # Adjust win/loss probabilities
-            p_i_win = p_i * (1.0 - p_draw)
-            p_j_win = (1.0 - p_i) * (1.0 - p_draw)
-            
-            # Add to negative log-likelihood based on actual result
-            if draw:
-                nll -= np.log(max(p_draw, 1e-10))
-            elif home_win:
-                nll -= np.log(max(p_i_win, 1e-10))
-            else:
-                nll -= np.log(max(p_j_win, 1e-10))
-        
-        # Add regularization to prevent extreme values (L2 regularization)
-        regularization_strength = 0.1
-        nll += regularization_strength * np.sum(strengths**2)
-        
-        return nll
 
-    def add_bradley_terry_ratings(dataframe, num_recent_games=6):
-        """
-        Add Bradley-Terry model rating columns to the football dataset.
-        Ratings are scaled to be positive and within the range 0-5 with average at 1.0.
-        
-        Parameters:
-        -----------
-        file_path : str
-            Path to the Excel file containing the football data
-        num_recent_games : int, optional
-            Number of recent games to consider for calculations (default: 6)
-        output_file : str, optional
-            Path to save the processed data (default: None, which appends '_bt' to original filename)
-        
-        Returns:
-        --------
-        pandas.DataFrame
-            The enhanced dataframe with Bradley-Terry rating columns
-        """
-        # Set default output file name if not provided
-        # if output_file is None:
-        #     output_file = file_path.replace('.xlsx', '_bt_fixed.xlsx')
-        
-        # Load and process the data
-        # df = load_and_process_data(file_path)
-        df = dataframe
+    # def _get_team_matches_bradleyTerry(df, team):
+    #     """Get all matches for a team (both home and away)"""
+    #     return df[(df['home_team'] == team) | (df['away_team'] == team)]
 
-        if df is None:
-            context.log("Failed to load data. Exiting.")
-            return None
+    # def _bradley_terry_loglikelihood(params, match_data, teams_idx, teams_count):
+    #     """
+    #     Calculate the negative log-likelihood for the Bradley-Terry model with regularization.
         
-        # Create a sequential index for chronological ordering
-        df = df.reset_index(drop=True)
+    #     Parameters:
+    #     -----------
+    #     params : array
+    #         Array of parameters: team strengths followed by home advantage
+    #     match_data : list of tuples
+    #         List of (home_idx, away_idx, home_win, draw) tuples
+    #     teams_idx : dict
+    #         Mapping of team names to index in strengths array
+    #     teams_count : int
+    #         Number of teams
+            
+    #     Returns:
+    #     --------
+    #     float
+    #         Negative log-likelihood with regularization
+    #     """
+    #     # Separate team strengths and home advantage
+    #     strengths = params[:teams_count]
+    #     home_advantage = params[-1]
         
-        # Initialize Bradley-Terry rating columns
-        bt_columns = [
-            'home_xg_bt',
-            'away_xg_bt',
-            'bt_home_advantage'
-        ]
+    #     # Add constraint to ensure sum of strengths is 0 (identifiability constraint)
+    #     strengths = strengths - np.mean(strengths)
         
-        # Initialize all columns with default values
-        for col in bt_columns:
-            df[col] = 0.0
+    #     # Calculate negative log-likelihood for matches
+    #     nll = 0.0
+    #     for home_idx, away_idx, home_win, draw in match_data:
+    #         # Get team strengths
+    #         s_i = strengths[home_idx] + home_advantage
+    #         s_j = strengths[away_idx]
+            
+    #         # Difference in strengths determines win probability
+    #         diff = s_i - s_j
+            
+    #         # Modified logistic function for probability calculation
+    #         p_i = 1.0 / (1.0 + np.exp(-diff))
+            
+    #         # For draws, use an ordered logit model
+    #         # Higher probability of draw when teams are more evenly matched
+    #         p_draw = max(0.0, 1.0 - abs(p_i - 0.5) * 2.0)  # Simple draw model
+    #         p_draw = min(p_draw, 0.5)  # Cap the draw probability
+            
+    #         # Adjust win/loss probabilities
+    #         p_i_win = p_i * (1.0 - p_draw)
+    #         p_j_win = (1.0 - p_i) * (1.0 - p_draw)
+            
+    #         # Add to negative log-likelihood based on actual result
+    #         if draw:
+    #             nll -= np.log(max(p_draw, 1e-10))
+    #         elif home_win:
+    #             nll -= np.log(max(p_i_win, 1e-10))
+    #         else:
+    #             nll -= np.log(max(p_j_win, 1e-10))
         
-        # Process each season separately
-        for season in df['season'].unique():
-            context.log(f"Processing season: {season}")
-            season_df = df[df['season'] == season].copy()
-            season_indices = season_df.index.tolist()
+    #     # Add regularization to prevent extreme values (L2 regularization)
+    #     regularization_strength = 0.1
+    #     nll += regularization_strength * np.sum(strengths**2)
+        
+    #     return nll
+
+    # def add_bradley_terry_ratings(dataframe, num_recent_games=6):
+    #     """
+    #     Add Bradley-Terry model rating columns to the football dataset.
+    #     Ratings are scaled to be positive and within the range 0-5 with average at 1.0.
+        
+    #     Parameters:
+    #     -----------
+    #     file_path : str
+    #         Path to the Excel file containing the football data
+    #     num_recent_games : int, optional
+    #         Number of recent games to consider for calculations (default: 6)
+    #     output_file : str, optional
+    #         Path to save the processed data (default: None, which appends '_bt' to original filename)
+        
+    #     Returns:
+    #     --------
+    #     pandas.DataFrame
+    #         The enhanced dataframe with Bradley-Terry rating columns
+    #     """
+    #     # Set default output file name if not provided
+    #     # if output_file is None:
+    #     #     output_file = file_path.replace('.xlsx', '_bt_fixed.xlsx')
+        
+    #     # Load and process the data
+    #     # df = load_and_process_data(file_path)
+    #     df = dataframe
+
+    #     if df is None:
+    #         context.log("Failed to load data. Exiting.")
+    #         return None
+        
+    #     # Create a sequential index for chronological ordering
+    #     df = df.reset_index(drop=True)
+        
+    #     # Initialize Bradley-Terry rating columns
+    #     bt_columns = [
+    #         'home_xg_bt',
+    #         'away_xg_bt',
+    #         'bt_home_advantage'
+    #     ]
+        
+    #     # Initialize all columns with default values
+    #     for col in bt_columns:
+    #         df[col] = 0.0
+        
+    #     # Process each season separately
+    #     for season in df['season'].unique():
+    #         context.log(f"Processing season: {season}")
+    #         season_df = df[df['season'] == season].copy()
+    #         season_indices = season_df.index.tolist()
             
-            # Bradley-Terry model parameters
-            bt_ratings = {}  # Dictionary to store Bradley-Terry ratings
-            bt_home_advantage = 0.0  # Home advantage parameter for Bradley-Terry model
+    #         # Bradley-Terry model parameters
+    #         bt_ratings = {}  # Dictionary to store Bradley-Terry ratings
+    #         bt_home_advantage = 0.0  # Home advantage parameter for Bradley-Terry model
             
-            # Initialize ratings for teams in this season
-            teams_in_season = list(set(season_df['home_team'].unique()) | set(season_df['away_team'].unique()))
-            for team in teams_in_season:
-                bt_ratings[team] = 0.0  # Start with neutral rating
+    #         # Initialize ratings for teams in this season
+    #         teams_in_season = list(set(season_df['home_team'].unique()) | set(season_df['away_team'].unique()))
+    #         for team in teams_in_season:
+    #             bt_ratings[team] = 0.0  # Start with neutral rating
             
-            # Create a mapping from team names to indices
-            teams_idx = {team: i for i, team in enumerate(teams_in_season)}
+    #         # Create a mapping from team names to indices
+    #         teams_idx = {team: i for i, team in enumerate(teams_in_season)}
             
-            # Track the model fitting frequency - don't need to fit every match
-            last_fit_index = -1
-            # fit_interval = max(5, len(season_df) // 20)  # Fit approximately 20 times per season
-            fit_interval = max(num_recent_games, len(season_df) // (len(season_df)/num_recent_games))  # Fit approximately (len(season_df)/num_recent_games) times per season
+    #         # Track the model fitting frequency - don't need to fit every match
+    #         last_fit_index = -1
+    #         # fit_interval = max(5, len(season_df) // 20)  # Fit approximately 20 times per season
+    #         fit_interval = max(num_recent_games, len(season_df) // (len(season_df)/num_recent_games))  # Fit approximately (len(season_df)/num_recent_games) times per season
             
-            # Process each match chronologically within the season
-            for match_idx_position, match_idx in enumerate(season_indices):
-                home_team = df.at[match_idx, 'home_team']
-                away_team = df.at[match_idx, 'away_team']
+    #         # Process each match chronologically within the season
+    #         for match_idx_position, match_idx in enumerate(season_indices):
+    #             home_team = df.at[match_idx, 'home_team']
+    #             away_team = df.at[match_idx, 'away_team']
                 
-                # Get all previous matches in this season up to this match
-                prev_season_matches = season_df[season_df.index < match_idx]
+    #             # Get all previous matches in this season up to this match
+    #             prev_season_matches = season_df[season_df.index < match_idx]
                 
-                # Recalculate Bradley-Terry ratings periodically
-                # enough_matches = len(prev_season_matches) >= 15  # Need matches for reliable Bradley-Terry
-                enough_matches = len(prev_season_matches) >= num_recent_games  # Need matches for reliable Bradley-Terry: num_recent_games
-                enough_new_matches = match_idx_position - last_fit_index >= fit_interval
+    #             # Recalculate Bradley-Terry ratings periodically
+    #             # enough_matches = len(prev_season_matches) >= 15  # Need matches for reliable Bradley-Terry
+    #             enough_matches = len(prev_season_matches) >= num_recent_games  # Need matches for reliable Bradley-Terry: num_recent_games
+    #             enough_new_matches = match_idx_position - last_fit_index >= fit_interval
                 
-                if enough_matches and (enough_new_matches or match_idx_position == len(season_indices) - 1):
-                    context.log(f"  Fitting model at match {match_idx_position+1}/{len(season_indices)}")
-                    last_fit_index = match_idx_position
+    #             if enough_matches and (enough_new_matches or match_idx_position == len(season_indices) - 1):
+    #                 context.log(f"  Fitting model at match {match_idx_position+1}/{len(season_indices)}")
+    #                 last_fit_index = match_idx_position
                     
-                    # Create a list of match data for optimization
-                    match_data = []
+    #                 # Create a list of match data for optimization
+    #                 match_data = []
                     
-                    # Create a set to track teams with recent matches
-                    teams_with_recent_matches = set()
+    #                 # Create a set to track teams with recent matches
+    #                 teams_with_recent_matches = set()
                     
-                    # For each team, get their most recent matches
-                    for team in teams_in_season:
-                        team_matches = _get_team_matches_bradleyTerry(prev_season_matches, team)
+    #                 # For each team, get their most recent matches
+    #                 for team in teams_in_season:
+    #                     team_matches = _get_team_matches_bradleyTerry(prev_season_matches, team)
                         
-                        # Only use the most recent num_recent_games for each team
-                        recent_team_matches = team_matches.tail(min(len(team_matches), num_recent_games))
+    #                     # Only use the most recent num_recent_games for each team
+    #                     recent_team_matches = team_matches.tail(min(len(team_matches), num_recent_games))
                         
-                        # Add to the set of teams with recent matches
-                        if len(recent_team_matches) > 0:
-                            teams_with_recent_matches.add(team)
+    #                     # Add to the set of teams with recent matches
+    #                     if len(recent_team_matches) > 0:
+    #                         teams_with_recent_matches.add(team)
                             
-                            # Add each match to match_data if not already added
-                            for _, match in recent_team_matches.iterrows():
-                                home_team_match = match['home_team']
-                                away_team_match = match['away_team']
+    #                         # Add each match to match_data if not already added
+    #                         for _, match in recent_team_matches.iterrows():
+    #                             home_team_match = match['home_team']
+    #                             away_team_match = match['away_team']
                                 
-                                # Both teams need to be in our index
-                                if home_team_match in teams_idx and away_team_match in teams_idx:
-                                    home_idx = teams_idx[home_team_match]
-                                    away_idx = teams_idx[away_team_match]
-                                    home_win = match['full_time_result'] == 'H'
-                                    draw = match['full_time_result'] == 'D'
+    #                             # Both teams need to be in our index
+    #                             if home_team_match in teams_idx and away_team_match in teams_idx:
+    #                                 home_idx = teams_idx[home_team_match]
+    #                                 away_idx = teams_idx[away_team_match]
+    #                                 home_win = match['full_time_result'] == 'H'
+    #                                 draw = match['full_time_result'] == 'D'
                                     
-                                    # Check if this match is already in match_data
-                                    match_tuple = (home_idx, away_idx, home_win, draw)
-                                    if match_tuple not in match_data:
-                                        match_data.append(match_tuple)
+    #                                 # Check if this match is already in match_data
+    #                                 match_tuple = (home_idx, away_idx, home_win, draw)
+    #                                 if match_tuple not in match_data:
+    #                                     match_data.append(match_tuple)
                     
-                    # if len(match_data) >= 10:  # Ensure enough matches for optimization
-                    if len(match_data) >= num_recent_games:  # Ensure enough matches for optimization: num_recent_games
-                        # Initial values - start with current ratings if available
-                        initial_strengths = np.zeros(len(teams_in_season))
-                        for team, idx in teams_idx.items():
-                            initial_strengths[idx] = bt_ratings.get(team, 0.0)
+    #                 # if len(match_data) >= 10:  # Ensure enough matches for optimization
+    #                 if len(match_data) >= num_recent_games:  # Ensure enough matches for optimization: num_recent_games
+    #                     # Initial values - start with current ratings if available
+    #                     initial_strengths = np.zeros(len(teams_in_season))
+    #                     for team, idx in teams_idx.items():
+    #                         initial_strengths[idx] = bt_ratings.get(team, 0.0)
                         
-                        # Add home advantage parameter
-                        initial_params = np.append(initial_strengths, bt_home_advantage if bt_home_advantage != 0 else 0.1)
+    #                     # Add home advantage parameter
+    #                     initial_params = np.append(initial_strengths, bt_home_advantage if bt_home_advantage != 0 else 0.1)
                         
-                        # Optimize with constraints and regularization
-                        try:
-                            result = minimize(
-                                lambda params: _bradley_terry_loglikelihood(
-                                    params, match_data, teams_idx, len(teams_in_season)
-                                ),
-                                initial_params,
-                                method='L-BFGS-B',  # More stable method
-                                bounds=[(-3, 3)] * len(teams_in_season) + [(0, 1)],  # Bounds to prevent extreme values
-                                options={'maxiter': 1000}
-                            )
+    #                     # Optimize with constraints and regularization
+    #                     try:
+    #                         result = minimize(
+    #                             lambda params: _bradley_terry_loglikelihood(
+    #                                 params, match_data, teams_idx, len(teams_in_season)
+    #                             ),
+    #                             initial_params,
+    #                             method='L-BFGS-B',  # More stable method
+    #                             bounds=[(-3, 3)] * len(teams_in_season) + [(0, 1)],  # Bounds to prevent extreme values
+    #                             options={'maxiter': 1000}
+    #                         )
                             
-                            # Extract results
-                            optimized_strengths = result.x[:len(teams_in_season)]
-                            bt_home_advantage = result.x[-1]
+    #                         # Extract results
+    #                         optimized_strengths = result.x[:len(teams_in_season)]
+    #                         bt_home_advantage = result.x[-1]
                             
-                            # Center strengths to ensure identifiability
-                            optimized_strengths = optimized_strengths - np.mean(optimized_strengths)
+    #                         # Center strengths to ensure identifiability
+    #                         optimized_strengths = optimized_strengths - np.mean(optimized_strengths)
                             
-                            # Transform ratings to 0-5 scale with average at 1.0
-                            # First, normalize to make variance approximately 0.5
-                            if len(optimized_strengths) > 1 and np.std(optimized_strengths) > 0:
-                                optimized_strengths = optimized_strengths / (2 * np.std(optimized_strengths))
+    #                         # Transform ratings to 0-5 scale with average at 1.0
+    #                         # First, normalize to make variance approximately 0.5
+    #                         if len(optimized_strengths) > 1 and np.std(optimized_strengths) > 0:
+    #                             optimized_strengths = optimized_strengths / (2 * np.std(optimized_strengths))
                             
-                            # Then shift and scale to 0-5 range with average at 1.0
-                            optimized_strengths = 1.0 + optimized_strengths  # Center at 1.0
+    #                         # Then shift and scale to 0-5 range with average at 1.0
+    #                         optimized_strengths = 1.0 + optimized_strengths  # Center at 1.0
                             
-                            # Clip to ensure range bounds (0-5)
-                            optimized_strengths = np.clip(optimized_strengths, 0, 5)
+    #                         # Clip to ensure range bounds (0-5)
+    #                         optimized_strengths = np.clip(optimized_strengths, 0, 5)
                             
-                            # Update team ratings
-                            for team, idx in teams_idx.items():
-                                bt_ratings[team] = optimized_strengths[idx]
+    #                         # Update team ratings
+    #                         for team, idx in teams_idx.items():
+    #                             bt_ratings[team] = optimized_strengths[idx]
                             
-                            context.log(f"  Model fit successful. Home advantage: {bt_home_advantage:.2f}")
-                        except Exception as e:
-                            context.log(f"  Error fitting Bradley-Terry model: {e}")
-                            # If optimization fails, keep existing ratings
+    #                         context.log(f"  Model fit successful. Home advantage: {bt_home_advantage:.2f}")
+    #                     except Exception as e:
+    #                         context.log(f"  Error fitting Bradley-Terry model: {e}")
+    #                         # If optimization fails, keep existing ratings
                 
-                # Set current Bradley-Terry ratings for this match
-                current_home_bt = bt_ratings.get(home_team, 1.0)  # Default to average (1.0) if not available
-                current_away_bt = bt_ratings.get(away_team, 1.0)
+    #             # Set current Bradley-Terry ratings for this match
+    #             current_home_bt = bt_ratings.get(home_team, 1.0)  # Default to average (1.0) if not available
+    #             current_away_bt = bt_ratings.get(away_team, 1.0)
                 
-                # Store ratings in the dataframe
-                df.at[match_idx, 'home_xg_bt'] = current_home_bt
-                df.at[match_idx, 'away_xg_bt'] = current_away_bt
-                df.at[match_idx, 'bt_home_advantage'] = bt_home_advantage
+    #             # Store ratings in the dataframe
+    #             df.at[match_idx, 'home_xg_bt'] = current_home_bt
+    #             df.at[match_idx, 'away_xg_bt'] = current_away_bt
+    #             df.at[match_idx, 'bt_home_advantage'] = bt_home_advantage
         
-        # Round all rating columns to 2 decimal places
-        for col in bt_columns:
-            df[col] = df[col].round(2)
+    #     # Round all rating columns to 2 decimal places
+    #     for col in bt_columns:
+    #         df[col] = df[col].round(2)
         
-        # drop unwanted columns
-        df = df.drop(['bt_home_advantage'], axis=1)
+    #     # drop unwanted columns
+    #     df = df.drop(['bt_home_advantage'], axis=1)
 
-        # Save the enhanced dataframe
-        # df.to_excel(output_file, index=False)
-        # context.log(f"Data with Bradley-Terry ratings saved to {output_file}")
+    #     # Save the enhanced dataframe
+    #     # df.to_excel(output_file, index=False)
+    #     # context.log(f"Data with Bradley-Terry ratings saved to {output_file}")
         
-        return df
+    #     return df
 
-    # Example usage
-    df_bt = add_bradley_terry_ratings(df_dc, num_recent_games=NUM_PREVIOUS_GAMES)
+    # # Example usage
+    # df_bt = add_bradley_terry_ratings(df_dc, num_recent_games=NUM_PREVIOUS_GAMES)
 
 
 
-    # Save the enhanced dataframe with only the xG columns
-    # df_bt.to_excel(OUTPUT_FILENAME, index=False)
-    # context.log(f"Data with only xG values saved to {OUTPUT_FILENAME}")
+    # # Save the enhanced dataframe with only the xG columns
+    # # df_bt.to_excel(OUTPUT_FILENAME, index=False)
+    # # context.log(f"Data with only xG values saved to {OUTPUT_FILENAME}")
 
 
     #################################################################################################################
@@ -2403,7 +2403,7 @@ def main(context):
 
     # Example usage
     df_pyth = add_pythagorean_ratings(
-        df_bt, 
+        clean_dataframe, 
         num_recent_games=NUM_PREVIOUS_GAMES, 
         exponent=PYTHAGOREAN_EXPONENT, 
     )

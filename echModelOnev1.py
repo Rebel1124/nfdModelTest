@@ -228,11 +228,11 @@ async def main(context):
             # First, check if file exists and delete it
             try:
                 # Try to get file info to check existence
-                await storage.get_file(bucket_id=bucket_id, file_id=file_id)
+                storage.get_file(bucket_id=bucket_id, file_id=file_id)
                 
                 # If we reach here, file exists, so delete it
                 context.log(f"Existing file '{file_id}' found. Deleting...")
-                await storage.delete_file(bucket_id=bucket_id, file_id=file_id)
+                storage.delete_file(bucket_id=bucket_id, file_id=file_id)
                 context.log(f"Existing file deleted successfully.")
             except AppwriteException as e:
                 # File doesn't exist, which is fine
@@ -244,7 +244,7 @@ async def main(context):
             # Try two approaches for permissions
             try:
                 # First approach - without specifying permissions (use bucket defaults)
-                result = await storage.create_file(
+                result = storage.create_file(
                     bucket_id=bucket_id,
                     file_id=file_id,
                     file=InputFile.from_path(temp_path)
@@ -255,7 +255,7 @@ async def main(context):
                 if "permissions" in str(e1).lower():
                     try:
                         # Second approach - specify explicit 'read' permission
-                        result = await storage.create_file(
+                        result = storage.create_file(
                             bucket_id=bucket_id,
                             file_id=file_id,
                             file=InputFile.from_path(temp_path),
@@ -633,7 +633,7 @@ async def main(context):
     ########################################################
 
     # Function to retrieve all documents from a collection
-    async def get_collection_documents(collection_id):
+    def get_collection_documents(collection_id):
         all_documents = []
         limit = 400
         offset = 0
@@ -684,7 +684,7 @@ async def main(context):
     for collection_id in COLLECTION_IDS:
         if collection_id:  # Skip if collection ID is None or empty
             context.log(f"\nProcessing collection: {collection_id}")
-            documents = await get_collection_documents(collection_id)
+            documents = get_collection_documents(collection_id)
             
             if documents:
                 # Create a DataFrame for this collection

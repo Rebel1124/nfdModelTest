@@ -138,7 +138,8 @@ def main(context):
         start_time = time.time()
         
         # Make a shallow copy to avoid modifying the original
-        df = dataframe.iloc[0:190].copy()
+        df = dataframe.copy()
+        # df = dataframe.iloc[0:190].copy()
         context.log(f"Preparing to save {len(df)} records to storage as '{file_id}'")
         
         # Check for and process specific columns

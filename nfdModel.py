@@ -1,7 +1,6 @@
 import os
 import math
 import time
-
 import json
 import numpy as np
 import pandas as pd
@@ -17,6 +16,7 @@ from appwrite.client import Client
 from scipy.optimize import minimize
 from appwrite.services.databases import Databases
 
+np.math = math
 
 import warnings
 warnings.filterwarnings('ignore')

@@ -48,8 +48,8 @@ def main(context):
         # os.environ['SEASON_MATCHES_NFD21_22'],  
         # os.environ['SEASON_MATCHES_NFD22_23'],
         # os.environ['SEASON_MATCHES_NFD23_24'],
-        os.environ['SEASON_MATCHES_NFD24_25'],  
-        # os.environ['SEASON_MATCHES_ECH24_25'], 
+        # os.environ['SEASON_MATCHES_NFD24_25'],  
+        os.environ['SEASON_MATCHES_ECH24_25'], 
     ]
 
     # OUTPUT_FILENAME = "nfd_data.xlsx"

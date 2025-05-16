@@ -8,6 +8,7 @@ import tempfile
 from io import BytesIO
 import statsmodels.api as sm
 from datetime import datetime
+import asyncio
 # from dotenv import load_dotenv
 from scipy.stats import poisson
 from appwrite.query import Query
@@ -33,7 +34,7 @@ warnings.filterwarnings('ignore')
 
 # load_dotenv()
 
-def main(context):
+async def main(context):
 
     # Replace these with your actual Appwrite credentials
     API_ENDPOINT = 'https://cloud.appwrite.io/v1'
@@ -78,7 +79,7 @@ def main(context):
 
     ########################################################
 
-    def save_to_appwrite_storage(dataframe, bucket_id, file_id="echStats", client=None, appwrite_endpoint=None, project_id=None, api_key=None):
+    async def save_to_appwrite_storage(dataframe, bucket_id, file_id="echStats", client=None, appwrite_endpoint=None, project_id=None, api_key=None):
         """
         Save DataFrame to a single file in Appwrite Storage with consistent name.
         Will replace existing file if it exists.
@@ -3334,6 +3335,6 @@ def main(context):
     # # df_twr.to_excel(OUTPUT_FILENAME, index=False)
     # # context.log(f"Data with only xG values saved to {OUTPUT_FILENAME}")
 
-    save_to_appwrite_storage(df_dc, STORAGE_ID, file_id="echStatsDixon", client=client)
+    await save_to_appwrite_storage(df_dc, STORAGE_ID, file_id="echStatsDixon", client=client)
 
     return context.res.empty()

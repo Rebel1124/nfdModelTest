@@ -18,7 +18,6 @@ from appwrite.services.storage import Storage
 from appwrite.exception import AppwriteException
 from appwrite.input_file import InputFile
 from appwrite.permission import Permission
-from appwrite.services.functions import Functions
 
 np.math = math
 
@@ -73,13 +72,6 @@ def main(context):
     client.set_project(PROJECT_ID)
     client.set_key(API_KEY)
 
-
-    functions = Functions(client)
-
-    result = functions.create_execution(
-        function_id = '6826b0ce00063d574fc9',
-        async = True, # optional
-    )
     # Initialize Databases service
     databases = Databases(client)
 

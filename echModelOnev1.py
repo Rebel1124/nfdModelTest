@@ -3335,6 +3335,8 @@ async def main(context):
     # # df_twr.to_excel(OUTPUT_FILENAME, index=False)
     # # context.log(f"Data with only xG values saved to {OUTPUT_FILENAME}")
 
-    asyncio.run(save_to_appwrite_storage(df_dc, STORAGE_ID, file_id="echStatsDixon", client=client))
+    await save_to_appwrite_storage(df_dc, STORAGE_ID, file_id="echStatsDixon", client=client)
 
     return context.res.empty()
+
+asyncio.run(main(context))

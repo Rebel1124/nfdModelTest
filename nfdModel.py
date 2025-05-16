@@ -4,9 +4,8 @@ import time
 import json
 import numpy as np
 import pandas as pd
+import tempfile
 from io import BytesIO
-# from appwrite.id import ID
-# from appwrite.services.storage import Storage
 import statsmodels.api as sm
 from datetime import datetime
 # from dotenv import load_dotenv
@@ -15,6 +14,11 @@ from appwrite.query import Query
 from appwrite.client import Client
 from scipy.optimize import minimize
 from appwrite.services.databases import Databases
+from appwrite.services.storage import Storage
+from appwrite.exception import AppwriteException
+from appwrite.services.storage import Storage
+from appwrite.input_file import InputFile
+from appwrite.permission import Permission
 
 np.math = math
 
@@ -101,19 +105,19 @@ def main(context):
         str or None
             The file ID if successful, None otherwise
         """
-        import time
-        from datetime import datetime
-        import pandas as pd
-        import numpy as np
-        import json
-        import os
-        import tempfile
+        # import time
+        # from datetime import datetime
+        # import pandas as pd
+        # import numpy as np
+        # import json
+        # import os
+        # import tempfile
         
         # Initialize Appwrite client and services if not provided
         if client is None:
-            from appwrite.client import Client
-            from appwrite.services.storage import Storage
-            from appwrite.exception import AppwriteException
+            # from appwrite.client import Client
+            # from appwrite.services.storage import Storage
+            # from appwrite.exception import AppwriteException
             
             if not appwrite_endpoint or not project_id or not api_key:
                 raise ValueError("If client is not provided, you must provide appwrite_endpoint, project_id, and api_key")
@@ -125,10 +129,10 @@ def main(context):
             client.set_key(api_key)
         
         # Initialize storage service
-        from appwrite.services.storage import Storage
-        from appwrite.exception import AppwriteException
-        from appwrite.input_file import InputFile
-        from appwrite.permission import Permission
+        # from appwrite.services.storage import Storage
+        # from appwrite.exception import AppwriteException
+        # from appwrite.input_file import InputFile
+        # from appwrite.permission import Permission
         storage = Storage(client)
         
         start_time = time.time()

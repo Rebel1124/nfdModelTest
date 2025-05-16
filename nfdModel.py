@@ -21,7 +21,6 @@ np.math = math
 import warnings
 warnings.filterwarnings('ignore')
 
-
 # pip install appwrite
 # pip install numpy
 # pip install pandas

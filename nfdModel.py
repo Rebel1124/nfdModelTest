@@ -48,7 +48,8 @@ def main(context):
         # os.environ['SEASON_MATCHES_NFD21_22'],  
         # os.environ['SEASON_MATCHES_NFD22_23'],
         # os.environ['SEASON_MATCHES_NFD23_24'],
-        os.environ['SEASON_MATCHES_NFD24_25'],  
+        # os.environ['SEASON_MATCHES_NFD24_25'],  
+        os.environ['SEASON_MATCHES_ECH24_25'], 
     ]
 
     # OUTPUT_FILENAME = "nfd_data.xlsx"
@@ -77,7 +78,7 @@ def main(context):
 
     ########################################################
 
-    def save_to_appwrite_storage(dataframe, bucket_id, file_id="nfdStats", client=None, appwrite_endpoint=None, project_id=None, api_key=None):
+    def save_to_appwrite_storage(dataframe, bucket_id, file_id="echStats", client=None, appwrite_endpoint=None, project_id=None, api_key=None):
         """
         Save DataFrame to a single file in Appwrite Storage with consistent name.
         Will replace existing file if it exists.
@@ -89,7 +90,7 @@ def main(context):
         bucket_id : str
             The Appwrite bucket ID where the file will be stored
         file_id : str
-            The file ID to use (default: "nfdStats")
+            The file ID to use (default: "echStats")
         client : appwrite.Client, optional
             An initialized Appwrite client (if not provided, one will be created)
         appwrite_endpoint : str, optional
@@ -3332,6 +3333,6 @@ def main(context):
     # df_twr.to_excel(OUTPUT_FILENAME, index=False)
     # context.log(f"Data with only xG values saved to {OUTPUT_FILENAME}")
 
-    save_to_appwrite_storage(df_twr, STORAGE_ID, file_id="nfdStats", client=client)
+    save_to_appwrite_storage(df_twr, STORAGE_ID, file_id="echStats", client=client)
 
     return context.res.empty()

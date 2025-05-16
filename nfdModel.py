@@ -42,10 +42,10 @@ def main(context):
 
     # List of collection IDs to retrieve data from
     COLLECTION_IDS = [
-        os.environ['SEASON_MATCHES_NFD20_21'],
-        os.environ['SEASON_MATCHES_NFD21_22'],  
-        os.environ['SEASON_MATCHES_NFD22_23'],
-        os.environ['SEASON_MATCHES_NFD23_24'],
+        # os.environ['SEASON_MATCHES_NFD20_21'],
+        # os.environ['SEASON_MATCHES_NFD21_22'],  
+        # os.environ['SEASON_MATCHES_NFD22_23'],
+        # os.environ['SEASON_MATCHES_NFD23_24'],
         os.environ['SEASON_MATCHES_NFD24_25'],  
     ]
 
